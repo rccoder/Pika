@@ -97,8 +97,8 @@ func parseCommandOptions(args []string) (commandOptions, error) {
 	}
 	fs := flag.NewFlagSet("download", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
-	output := fs.String("output", ".", "destination directory")
-	fs.StringVar(output, "o", ".", "destination directory")
+	output := fs.String("output", "", "destination directory (overrides environment and config)")
+	fs.StringVar(output, "o", "", "destination directory")
 	qualityValue := fs.String("quality", "high", "audio quality")
 	configPath := fs.String("config", os.Getenv("PIKA_CONFIG"), "INI configuration file")
 	cookieFlag := fs.String("cookie", "", "platform Cookie")
@@ -144,7 +144,17 @@ func settingsFor(opts commandOptions, platformName string) (settings, error) {
 	if value := strings.TrimSpace(os.Getenv("PIKA_DOWNLOAD_PROXY")); value != "" && strings.TrimSpace(opts.proxy) == "" {
 		fileSettings.proxy = value
 	}
-	fileSettings.cookie, fileSettings.output, fileSettings.quality = cookie, opts.output, q
+	if value := strings.TrimSpace(os.Getenv("PIKA_DOWNLOAD_OUTPUT_DIR")); value != "" {
+		fileSettings.output = value
+	}
+	if opts.output != "" {
+		fileSettings.output = opts.output
+	}
+	fileSettings.output, err = expandHomePath(fileSettings.output)
+	if err != nil {
+		return settings{}, err
+	}
+	fileSettings.cookie, fileSettings.quality = cookie, q
 	return fileSettings, nil
 }
 
@@ -289,9 +299,20 @@ func normalizeDownloadArgs(args []string) ([]string, error) {
 }
 
 func loadSettings(path, platformName string) (settings, error) {
-	s := settings{timeout: 90 * time.Second, multipart: true, concurrency: 4, platformPriority: []string{"bilibili", "youtubemusic"}}
+	s := settings{output: ".", timeout: 90 * time.Second, multipart: true, concurrency: 4, platformPriority: []string{"bilibili", "youtubemusic"}}
 	if strings.TrimSpace(path) == "" {
-		return s, nil
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return s, err
+		}
+		path = filepath.Join(home, ".pika", "config.ini")
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			return s, nil
+		}
+	}
+	path, err := expandHomePath(path)
+	if err != nil {
+		return s, err
 	}
 	cfg, err := ini.Load(path)
 	if err != nil {
@@ -302,6 +323,9 @@ func loadSettings(path, platformName string) (settings, error) {
 		s.cookie = strings.Trim(cfg.Section(platformName).Key("cookie").String(), "`\"'")
 	}
 	downloadCfg := cfg.Section("download")
+	if value := strings.TrimSpace(downloadCfg.Key("output_dir").String()); value != "" {
+		s.output = value
+	}
 	if raw := strings.TrimSpace(downloadCfg.Key("platform_priority").String()); raw != "" {
 		s.platformPriority = parsePlatformPriority(raw)
 	}
@@ -318,6 +342,20 @@ func loadSettings(path, platformName string) (settings, error) {
 		s.concurrency = value
 	}
 	return s, nil
+}
+
+func expandHomePath(path string) (string, error) {
+	if path == "~" || strings.HasPrefix(path, "~/") {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return "", err
+		}
+		if path == "~" {
+			return home, nil
+		}
+		return filepath.Join(home, strings.TrimPrefix(path, "~/")), nil
+	}
+	return path, nil
 }
 
 func parsePlatformPriority(raw string) []string {

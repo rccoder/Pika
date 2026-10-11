@@ -91,3 +91,36 @@ func TestSafeFilename(t *testing.T) {
 		t.Fatalf("got %q, want %q", got, want)
 	}
 }
+
+func TestDefaultConfigAndOutputPrecedence(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("PIKA_CONFIG", "")
+	t.Setenv("PIKA_DOWNLOAD_OUTPUT_DIR", "")
+	if err := os.Mkdir(filepath.Join(home, ".pika"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(home, ".pika", "config.ini")
+	if err := os.WriteFile(path, []byte("[download]\noutput_dir = ~/Music/Pika\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	opts := commandOptions{quality: "high"}
+	s, err := settingsFor(opts, "bilibili")
+	if err != nil || s.output != filepath.Join(home, "Music", "Pika") {
+		t.Fatalf("config output: %q, %v", s.output, err)
+	}
+	t.Setenv("PIKA_DOWNLOAD_OUTPUT_DIR", "env-output")
+	s, err = settingsFor(opts, "bilibili")
+	if err != nil || s.output != "env-output" {
+		t.Fatalf("env output: %q, %v", s.output, err)
+	}
+	opts.output = "."
+	s, err = settingsFor(opts, "bilibili")
+	if err != nil || s.output != "." {
+		t.Fatalf("explicit output: %q, %v", s.output, err)
+	}
+	opts.configPath = filepath.Join(home, "missing.ini")
+	if _, err := settingsFor(opts, "bilibili"); err == nil {
+		t.Fatal("explicit missing config must fail")
+	}
+}

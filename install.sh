@@ -41,9 +41,17 @@ else
   fail 'Please install sha256sum or shasum.'
 fi
 [ "$pika_actual" = "$pika_expected" ] || fail 'Checksum mismatch; installation stopped.'
-tar -xzf "$pika_tmp/$pika_asset" -C "$pika_tmp" pika
+tar -xzf "$pika_tmp/$pika_asset" -C "$pika_tmp" pika config.example.ini
 mkdir -p "$pika_dir"
 install -m 755 "$pika_tmp/pika" "$pika_dir/pika"
+pika_config_dir="$HOME/.pika"
+if [ ! -e "$pika_config_dir/config.ini" ]; then
+  mkdir -p "$pika_config_dir"
+  chmod 700 "$pika_config_dir"
+  (umask 077; cp -n "$pika_tmp/config.example.ini" "$pika_config_dir/config.ini")
+  chmod 600 "$pika_config_dir/config.ini"
+  printf 'Created configuration: %s/config.ini\n' "$pika_config_dir"
+fi
 printf 'Installed Pika %s to %s/pika\n' "$pika_tag" "$pika_dir"
 case ":$PATH:" in
   *":$pika_dir:"*) ;;

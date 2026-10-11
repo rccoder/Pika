@@ -6,6 +6,8 @@
 
 视频链接下载的是音频，不会下载画面。
 
+Pika 非常适合由 **AI Agent 调用**：告诉具备终端执行能力的 Agent 想下载的歌手、歌名或链接，它就可以通过 CLI 将音乐保存到本地。
+
 ## 前置条件
 
 - `ffmpeg`（必需）：Bilibili 与 YouTube Music 返回的常是 DASH 音频分段，CLI 会用它重新封装为常见播放器可打开的文件。
@@ -67,18 +69,22 @@ pika download '周传雄 黄昏' -o ./music
 curl -fsSL https://raw.githubusercontent.com/rccoder/Pika/main/install.sh | PIKA_VERSION=v0.1.0 PIKA_INSTALL_DIR="$HOME/.local/bin" sh
 ```
 
-## 开始使用：配置 Cookie
+## 使用 config.ini
 
-建议先配置已登录账号的 Cookie，便于获取账号有权限播放的音轨。Cookie 不保证每首歌都有更高音质；公开内容也可匿名下载。
+`config.ini` 可以统一保存平台 Cookie、下载目录和平台优先级。配置 Cookie 后，Pika 可以使用已登录账号的播放权限，部分内容可获取更高音质，也可能减少匿名访问限制；具体取决于账号权限和音源。公开内容通常也可匿名下载。
 
-下载配置模板并限制读取权限：
+安装脚本会自动创建 `~/.pika/config.ini`（文件权限 `600`，目录权限 `700`），再次安装或升级会保留已有配置。用编辑器打开它，填写 Cookie 即可，无需每次指定配置路径。
+
+手动安装或从源码运行时，也可以下载模板（仅在文件不存在时执行）：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/rccoder/Pika/main/config.example.ini -o config.ini
-chmod 600 config.ini
+mkdir -p ~/.pika
+chmod 700 ~/.pika
+curl -fsSL https://raw.githubusercontent.com/rccoder/Pika/main/config.example.ini -o ~/.pika/config.ini
+chmod 600 ~/.pika/config.ini
 ```
 
-用编辑器打开 `config.ini`，将浏览器中对应网站已登录会话的完整 Cookie 填入相应节（示例是占位符）：
+用编辑器打开 `~/.pika/config.ini`，将浏览器中对应网站已登录会话的完整 Cookie 填入相应节（示例是占位符）：
 
 ```ini
 [plugins.bilibili]
@@ -88,18 +94,26 @@ cookie = `SESSDATA=...; bili_jct=...`
 cookie = `SID=...; SAPISID=...`
 
 [download]
+output_dir = ~/Music/Pika
 platform_priority = bilibili,youtubemusic
 ```
 
 浏览器开发者工具的 Network 面板中，选择对应网站的请求，在请求头中查找 `Cookie`；复制其值即可。Cookie 过期后需更新。不使用的平台可留空。
 
-指定配置路径后，后续关键词和链接下载都自动读取该文件：
+Pika 默认读取 `~/.pika/config.ini`；也可以指定其他配置路径：
 
 ```bash
 export PIKA_CONFIG="$PWD/config.ini"
 ```
 
-也可以每次在命令后加 `--config ./config.ini`。环境变量和独立 Cookie 文件的用法见后面的「Cookie 配置」。
+也可以每次在命令后加 `--config ./config.ini`。配置文件路径优先级为 `--config` > `PIKA_CONFIG` > `~/.pika/config.ini`；默认文件不存在时可匿名运行。环境变量和独立 Cookie 文件的用法见后面的「其他配置方式」。
+
+配置好后，无需重复传 Cookie 或下载目录：
+
+```bash
+pika download '周传雄 黄昏'
+pika download 'https://youtu.be/dQw4w9WgXcQ'
+```
 
 ## 按关键词搜索下载
 
@@ -138,6 +152,15 @@ Saved: music/UP主 - 视频标题.m4a
 
 输出目录不存在时会自动创建；同名文件不会覆盖，而会自动追加 ` (2)`、` (3)` 等后缀。
 
+不传 `-o` 时，可以在配置中设置固定输出目录：
+
+```ini
+[download]
+output_dir = ~/Music/Pika
+```
+
+输出目录优先级：`--output` / `-o` > `PIKA_DOWNLOAD_OUTPUT_DIR` > `output_dir` > 当前工作目录。支持 `~` 和 `~/`；相对路径以执行命令的工作目录为基准。
+
 `download` 后的 URL 可以放在选项之前或之后，两种写法都有效：
 
 ```bash
@@ -173,6 +196,30 @@ platform_priority = bilibili,youtubemusic
 ```
 
 支持 `bilibili`、`youtubemusic`（也可写 `youtube` 或 `ytm`）；未配置时默认为 `bilibili,youtubemusic`。
+
+## 让 AI Agent 帮你下载音乐
+
+安装 Pika、ffmpeg 并填写 `~/.pika/config.ini` 后，可以直接对具备终端执行能力的 AI Agent 说：
+
+> 使用 Pika 下载周华健的《朋友》，使用默认配置和下载目录，完成后告诉我文件保存在哪里。
+
+Agent 可以执行：
+
+```bash
+pika download '周华健 朋友'
+```
+
+也可以交给 Agent 一个具体链接：
+
+> 使用 Pika 下载这个链接的音频：https://youtu.be/dQw4w9WgXcQ，保存到 ./music。
+
+```bash
+pika download 'https://youtu.be/dQw4w9WgXcQ' -o ./music
+```
+
+CLI 自动读取 `~/.pika/config.ini` 中的 Cookie、平台优先级和输出目录；无需把 Cookie 发给 Agent 或放进命令。完成后，终端输出的 `Saved:` 行包含文件保存路径，失败时返回非零退出码，方便 Agent 判断结果。
+
+批量任务也可以用自然语言交代，例如「分别下载李宗盛的《山丘》《凡人歌》《给自己的歌》」。Agent 需要逐首调用 CLI；Pika 每次只下载一首。关键词结果可能是翻唱或现场版本，指定版本时请提供对应链接。需要核对文件格式、时长或实际码率时，Agent 可继续调用 `ffprobe` 检查下载文件。
 
 ## 支持的输入
 
@@ -227,13 +274,13 @@ pika download 'BV1Rc1gBaERq' -o ./music --quality hires
 
 实际能获取到的音质取决于稿件与账号权限。无法取得所选流时，命令会报错，不会悄悄保存不完整文件。
 
-## Cookie 配置
+## 其他配置方式
 
 公开稿件通常不需要 Cookie。若需要访问受限内容、较高音质或遇到访问限制，请提供对应网站已登录会话的 Cookie。
 
 Cookie 的优先级为：`--cookie` > `--cookie-file` > 平台环境变量 > 配置文件。
 
-### 推荐：环境变量
+### 环境变量
 
 环境变量可避免在下载命令中传入 Cookie；直接执行含 Cookie 的 `export` 仍可能进入 shell 历史，建议从受保护的配置文件读取：
 
@@ -280,6 +327,7 @@ cookie = `SESSDATA=...; bili_jct=...`
 cookie = `SID=...; SAPISID=...`
 
 [download]
+output_dir = ~/Music/Pika
 platform_priority = bilibili,youtubemusic
 timeout_seconds = 90
 proxy = http://127.0.0.1:7890
@@ -302,6 +350,7 @@ pika download 'BV1Rc1gBaERq' --config ./config.ini -o ./music
 | 变量 | 用途 |
 | --- | --- |
 | `PIKA_CONFIG` | 默认 INI 配置文件路径，可被 `--config` 替代 |
+| `PIKA_DOWNLOAD_OUTPUT_DIR` | 下载目录，可被 `--output` / `-o` 替代 |
 | `PIKA_BILIBILI_COOKIE` | Bilibili Cookie |
 | `PIKA_YOUTUBEMUSIC_COOKIE` | YouTube Music Cookie |
 | `PIKA_DOWNLOAD_TIMEOUT_SECONDS` | 下载超时秒数，例如 `120` |
