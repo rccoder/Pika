@@ -1,12 +1,33 @@
 package main
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
 	"time"
 )
+
+func TestPrintVersion(t *testing.T) {
+	original := version
+	t.Cleanup(func() { version = original })
+	for _, value := range []string{"dev", "v0.2.1"} {
+		version = value
+		for _, command := range []string{"version", "--version"} {
+			var output bytes.Buffer
+			if !printVersion([]string{command}, &output) || output.String() != "Pika "+value+"\n" {
+				t.Fatalf("%s: unexpected output %q", command, output.String())
+			}
+		}
+	}
+	for _, args := range [][]string{nil, {"download"}, {"version", "extra"}} {
+		var output bytes.Buffer
+		if printVersion(args, &output) || output.Len() != 0 {
+			t.Fatalf("unexpected version handling for %q", args)
+		}
+	}
+}
 
 func TestNormalizeDownloadArgsAllowsURLBeforeFlags(t *testing.T) {
 	got, err := normalizeDownloadArgs([]string{"BV1Rc1gBaERq", "--output", "music", "--quality", "hires"})

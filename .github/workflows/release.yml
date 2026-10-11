@@ -30,7 +30,7 @@ jobs:
           for os in darwin linux; do
             for arch in amd64 arm64; do
               stage=$(mktemp -d)
-              CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" go build -trimpath -ldflags='-s -w' -o "$stage/pika" .
+              CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" go build -trimpath -ldflags="-s -w -X main.version=$PIKA_TAG" -o "$stage/pika" .
               cp README.md config.example.ini LICENSE "$stage/"
               tar -czf "dist/pika_${PIKA_TAG}_${os}_${arch}.tar.gz" -C "$stage" pika README.md config.example.ini LICENSE
             done

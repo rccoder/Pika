@@ -23,9 +23,13 @@ import (
 	"gopkg.in/ini.v1"
 )
 
+// version is set from the release tag with -ldflags "-X main.version=...".
+var version = "dev"
+
 const usage = `Pika downloads playable audio from Bilibili and YouTube Music.
 
 Usage:
+  pika version | pika --version
   pika download <Bilibili/YouTube URL, ID, or search keyword> [options]
   pika youtube download <YouTube Music URL or video ID> [options]
 
@@ -57,6 +61,9 @@ type commandOptions struct {
 }
 
 func main() {
+	if printVersion(os.Args[1:], os.Stdout) {
+		return
+	}
 	if len(os.Args) < 2 || os.Args[1] == "-h" || os.Args[1] == "--help" || os.Args[1] == "help" {
 		fmt.Fprint(os.Stdout, usage)
 		return
@@ -76,6 +83,14 @@ func main() {
 	if err != nil {
 		fatalf("download failed: %v", err)
 	}
+}
+
+func printVersion(args []string, output io.Writer) bool {
+	if len(args) != 1 || (args[0] != "version" && args[0] != "--version") {
+		return false
+	}
+	fmt.Fprintf(output, "Pika %s\n", version)
+	return true
 }
 
 func runDownload(args []string, platformName string) error {

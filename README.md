@@ -69,6 +69,15 @@ pika download '周传雄 黄昏' -o ./music
 curl -fsSL https://raw.githubusercontent.com/rccoder/Pika/main/install.sh | PIKA_VERSION=v0.1.0 PIKA_INSTALL_DIR="$HOME/.local/bin" sh
 ```
 
+查看当前版本：
+
+```bash
+pika --version
+# 或 pika version
+```
+
+发版二进制显示对应标签版本（如 `Pika v0.2.1`），未注入版本号的本地构建显示 `Pika dev`。
+
 ## 使用 config.ini
 
 `config.ini` 可以统一保存平台 Cookie、下载目录和平台优先级。配置 Cookie 后，Pika 可以使用已登录账号的播放权限，部分内容可获取更高音质，也可能减少匿名访问限制；具体取决于账号权限和音源。公开内容通常也可匿名下载。
@@ -419,7 +428,14 @@ go build -o bin/pika .
 ./bin/pika --help
 ```
 
-开发时也可直接执行 `go run . download '周传雄 黄昏' -o ./music`。检查代码：
+如需手动注入版本号：
+
+```bash
+go build -ldflags="-X main.version=v0.2.1" -o bin/pika .
+./bin/pika --version
+```
+
+Release 工作流会自动使用 Git 标签注入版本号。开发时也可直接执行 `go run . download '周传雄 黄昏' -o ./music`。检查代码：
 
 ```bash
 go test ./...
