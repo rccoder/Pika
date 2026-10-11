@@ -8,7 +8,6 @@
 
 ## 前置条件
 
-- Go `1.26+`（从源码构建时需要）
 - `ffmpeg`（必需）：Bilibili 与 YouTube Music 返回的常是 DASH 音频分段，CLI 会用它重新封装为常见播放器可打开的文件。
 
 ### 安装 ffmpeg
@@ -41,26 +40,37 @@ ffprobe -version
 
 Pika 使用 ffmpeg 提取音轨并重新封装，直接复制音频数据，不重新编码；ffprobe 可用于检查下载文件的编码、容器和时长。
 
-## 构建
+## 安装 Pika
 
-在项目目录执行：
+macOS 和 Linux 可以直接安装预编译二进制，无需 Go：
 
 ```bash
-git clone https://github.com/rccoder/Pika.git
-cd Pika
-go build -o bin/pika .
+curl -fsSL https://raw.githubusercontent.com/rccoder/Pika/main/install.sh | sh
 ```
 
-也可以不先构建，直接用 `go run`：
+脚本自动识别系统和 CPU 架构，下载最新 Release，校验 SHA256，并安装到 `~/.local/bin/pika`。支持 Intel / Apple Silicon Mac，以及 amd64 / arm64 Linux；再次运行即可升级。
+
+若提示 `pika: command not found`，将下面一行加到 `~/.zshrc` 或 `~/.bashrc`，然后重新打开终端：
 
 ```bash
-go run . --help
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+```bash
+pika --help
+pika download '周传雄 黄昏' -o ./music
+```
+
+也可以从 [Releases](https://github.com/rccoder/Pika/releases) 手动下载对应压缩包。指定版本或安装目录时：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/rccoder/Pika/main/install.sh | PIKA_VERSION=v0.1.0 PIKA_INSTALL_DIR="$HOME/.local/bin" sh
 ```
 
 ## 最简单的下载方式
 
 ```bash
-./bin/pika download \
+pika download \
   'https://www.bilibili.com/video/BV1Rc1gBaERq' \
   --output ./downloads \
   --quality high
@@ -78,10 +88,10 @@ Saved: downloads/UP主 - 视频标题.m4a
 
 ```bash
 # 推荐：URL 在前，阅读更自然
-./bin/pika download 'https://www.bilibili.com/video/BV1Rc1gBaERq' -o ./music
+pika download 'https://www.bilibili.com/video/BV1Rc1gBaERq' -o ./music
 
 # 也支持先写选项
-./bin/pika download -o ./music 'BV1Rc1gBaERq'
+pika download -o ./music 'BV1Rc1gBaERq'
 ```
 
 ## 总下载命令：自动识别与关键词搜索
@@ -89,14 +99,14 @@ Saved: downloads/UP主 - 视频标题.m4a
 `download` 是总入口。它会自动识别 Bilibili、YouTube 或 YouTube Music 的链接/ID，并使用相应插件：
 
 ```bash
-./bin/pika download 'https://youtu.be/dQw4w9WgXcQ' -o ./music
-./bin/pika download 'https://www.bilibili.com/video/BV1Rc1gBaERq' -o ./music
+pika download 'https://youtu.be/dQw4w9WgXcQ' -o ./music
+pika download 'https://www.bilibili.com/video/BV1Rc1gBaERq' -o ./music
 ```
 
 也可以传入关键词。CLI 会按 `platform_priority` 搜索，检查候选曲目的实际下载流；有可用 `high` 流时优先下载它，所有候选都只能标准音质时则使用最高优先级平台的可用流。
 
 ```bash
-./bin/pika download 'Never Gonna Give You Up' -o ./music
+pika download 'Never Gonna Give You Up' -o ./music
 ```
 
 链接的来源是确定的，不受平台优先级影响。关键词搜索不接受 `--cookie` 或 `--cookie-file`；请用环境变量或配置文件为各平台提供 Cookie。
@@ -128,7 +138,7 @@ platform_priority = bilibili,youtubemusic
 使用 `youtube download` 子命令：
 
 ```bash
-./bin/pika youtube download \
+pika youtube download \
   'https://music.youtube.com/watch?v=dQw4w9WgXcQ' \
   --output ./music \
   --quality high
@@ -137,9 +147,9 @@ platform_priority = bilibili,youtubemusic
 也支持普通 YouTube 链接、短链、Shorts 和 11 位视频 ID：
 
 ```bash
-./bin/pika youtube download 'https://youtu.be/dQw4w9WgXcQ' -o ./music
-./bin/pika youtube download 'https://www.youtube.com/shorts/dQw4w9WgXcQ' -o ./music
-./bin/pika youtube download 'dQw4w9WgXcQ' -o ./music
+pika youtube download 'https://youtu.be/dQw4w9WgXcQ' -o ./music
+pika youtube download 'https://www.youtube.com/shorts/dQw4w9WgXcQ' -o ./music
+pika youtube download 'dQw4w9WgXcQ' -o ./music
 ```
 
 YouTube Music 仅提供标准/高音质的 AAC、Opus 等有损音频，不支持无损或 Hi-Res；因此该命令只接受 `standard` 与 `high`。
@@ -158,7 +168,7 @@ YouTube Music 仅提供标准/高音质的 AAC、Opus 等有损音频，不支�
 例子：
 
 ```bash
-./bin/pika download 'BV1Rc1gBaERq' -o ./music --quality hires
+pika download 'BV1Rc1gBaERq' -o ./music --quality hires
 ```
 
 实际能获取到的音质取决于稿件与账号权限。无法取得所选流时，命令会报错，不会悄悄保存不完整文件。
@@ -175,14 +185,14 @@ Cookie 的优先级为：`--cookie` > `--cookie-file` > 平台环境变量 > 配
 
 ```bash
 export PIKA_BILIBILI_COOKIE='SESSDATA=...; bili_jct=...'
-./bin/pika download 'BV1Rc1gBaERq' -o ./music --quality hires
+pika download 'BV1Rc1gBaERq' -o ./music --quality hires
 ```
 
 YouTube Music 则使用：
 
 ```bash
 export PIKA_YOUTUBEMUSIC_COOKIE='SID=...; SAPISID=...'
-./bin/pika youtube download 'dQw4w9WgXcQ' -o ./music
+pika youtube download 'dQw4w9WgXcQ' -o ./music
 ```
 
 ### Cookie 文件
@@ -191,7 +201,7 @@ export PIKA_YOUTUBEMUSIC_COOKIE='SID=...; SAPISID=...'
 
 ```bash
 chmod 600 ~/.config/pika/bilibili.cookie
-./bin/pika download 'BV1Rc1gBaERq' \
+pika download 'BV1Rc1gBaERq' \
   --cookie-file ~/.config/pika/bilibili.cookie \
   -o ./music
 ```
@@ -201,7 +211,7 @@ chmod 600 ~/.config/pika/bilibili.cookie
 复制示例配置：
 
 ```bash
-cp config.example.ini config.ini
+curl -fsSL https://raw.githubusercontent.com/rccoder/Pika/main/config.example.ini -o config.ini
 chmod 600 config.ini
 ```
 
@@ -226,7 +236,7 @@ multipart_concurrency = 4
 使用它下载：
 
 ```bash
-./bin/pika download 'BV1Rc1gBaERq' --config ./config.ini -o ./music
+pika download 'BV1Rc1gBaERq' --config ./config.ini -o ./music
 ```
 
 也兼容较短的 `[bilibili]` 配置节。
@@ -275,7 +285,7 @@ pika youtube download <YouTube / YouTube Music URL 或视频 ID> [options]
 可增加超时，或使用代理：
 
 ```bash
-./bin/pika download 'BV1Rc1gBaERq' \
+pika download 'BV1Rc1gBaERq' \
   --timeout 180 \
   --proxy http://127.0.0.1:7890 \
   -o ./music
@@ -295,13 +305,33 @@ ffprobe -v error \
 
 正常的 AAC 输出通常会显示 `codec_name=aac` 和 `format_name=mov,mp4,m4a,...`。
 
-## 验证开发环境
+## 开发者：源码构建与发布
+
+需要 Go `1.26+`。克隆后即可独立构建：
+
+```bash
+git clone https://github.com/rccoder/Pika.git
+cd Pika
+go build -o bin/pika .
+./bin/pika --help
+```
+
+开发时也可直接执行 `go run . download '周传雄 黄昏' -o ./music`。检查代码：
 
 ```bash
 go test ./...
 go vet ./...
 go build -o bin/pika .
 ```
+
+维护者推送版本标签后，Release 工作流自动测试并生成 macOS/Linux 的 amd64、arm64 压缩包和 `SHA256SUMS`，发布到 GitHub Releases：
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+后续版本使用新的标签，例如 `v0.1.1`；安装脚本默认跟随最新 Release。
 
 ## 致谢
 

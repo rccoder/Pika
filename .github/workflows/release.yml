@@ -1,0 +1,44 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Verify
+        run: |
+          go vet ./...
+          go test -race ./...
+      - name: Build release archives
+        env:
+          PIKA_TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          for os in darwin linux; do
+            for arch in amd64 arm64; do
+              stage=$(mktemp -d)
+              CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" go build -trimpath -ldflags='-s -w' -o "$stage/pika" .
+              cp README.md config.example.ini LICENSE "$stage/"
+              tar -czf "dist/pika_${PIKA_TAG}_${os}_${arch}.tar.gz" -C "$stage" pika README.md config.example.ini LICENSE
+            done
+          done
+          cd dist
+          sha256sum *.tar.gz > SHA256SUMS
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PIKA_TAG: ${{ github.ref_name }}
+        run: gh release create "$PIKA_TAG" dist/* --verify-tag --title "Pika $PIKA_TAG" --generate-notes
