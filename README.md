@@ -2,7 +2,7 @@
 
 **把喜欢的音乐带回家。**
 
-`Pika` 是独立的命令行下载器。当前支持将哔哩哔哩或 YouTube Music 链接中的**音轨**保存为本地可播放文件；所需的平台解析和下载实现均包含在本仓库的 `internal/music/` 中，不依赖相邻项目或本地 `replace`。
+`Pika` 支持按**关键词搜索下载**，也支持按 **Bilibili / YouTube 链接下载**，把音乐保存到指定目录。可通过配置文件或环境变量为各平台提供 Cookie，默认优先选择可用高音质。
 
 视频链接下载的是音频，不会下载画面。
 
@@ -67,19 +67,73 @@ pika download '周传雄 黄昏' -o ./music
 curl -fsSL https://raw.githubusercontent.com/rccoder/Pika/main/install.sh | PIKA_VERSION=v0.1.0 PIKA_INSTALL_DIR="$HOME/.local/bin" sh
 ```
 
-## 最简单的下载方式
+## 开始使用：配置 Cookie
+
+建议先配置已登录账号的 Cookie，便于获取账号有权限播放的音轨。Cookie 不保证每首歌都有更高音质；公开内容也可匿名下载。
+
+下载配置模板并限制读取权限：
 
 ```bash
-pika download \
-  'https://www.bilibili.com/video/BV1Rc1gBaERq' \
-  --output ./downloads \
-  --quality high
+curl -fsSL https://raw.githubusercontent.com/rccoder/Pika/main/config.example.ini -o config.ini
+chmod 600 config.ini
+```
+
+用编辑器打开 `config.ini`，将浏览器中对应网站已登录会话的完整 Cookie 填入相应节（示例是占位符）：
+
+```ini
+[plugins.bilibili]
+cookie = `SESSDATA=...; bili_jct=...`
+
+[plugins.youtubemusic]
+cookie = `SID=...; SAPISID=...`
+
+[download]
+platform_priority = bilibili,youtubemusic
+```
+
+浏览器开发者工具的 Network 面板中，选择对应网站的请求，在请求头中查找 `Cookie`；复制其值即可。Cookie 过期后需更新。不使用的平台可留空。
+
+指定配置路径后，后续关键词和链接下载都自动读取该文件：
+
+```bash
+export PIKA_CONFIG="$PWD/config.ini"
+```
+
+也可以每次在命令后加 `--config ./config.ini`。环境变量和独立 Cookie 文件的用法见后面的「Cookie 配置」。
+
+## 按关键词搜索下载
+
+输入「歌手 + 歌名」最容易找到想要的歌曲：
+
+```bash
+pika download '周传雄 黄昏' -o ./music
+pika download '李宗盛 山丘' -o ./music
+```
+
+也支持只输入歌手或歌名：
+
+```bash
+pika download '周传雄' -o ./music
+```
+
+当前会自动选择一首搜索结果下载，不提供交互选择，也不会批量下载歌手的所有歌曲。搜索结果可能包含翻唱、现场或剪辑版本；需要准确版本时，建议使用具体链接。
+
+CLI 按配置的平台优先级搜索，检查候选音轨的实际档位并优先选择高音质；详情见下面的「平台选择与音质」。
+
+## 按链接下载
+
+将具体的 Bilibili 或 YouTube 链接传给同一个命令，自动识别平台：
+
+```bash
+pika download 'https://www.bilibili.com/video/BV1Rc1gBaERq' -o ./music
+pika download 'https://youtu.be/dQw4w9WgXcQ' -o ./music
+pika download 'https://music.youtube.com/watch?v=dQw4w9WgXcQ' -o ./music
 ```
 
 完成后会显示最终保存路径，例如：
 
 ```text
-Saved: downloads/UP主 - 视频标题.m4a
+Saved: music/UP主 - 视频标题.m4a
 ```
 
 输出目录不存在时会自动创建；同名文件不会覆盖，而会自动追加 ` (2)`、` (3)` 等后缀。
@@ -94,7 +148,7 @@ pika download 'https://www.bilibili.com/video/BV1Rc1gBaERq' -o ./music
 pika download -o ./music 'BV1Rc1gBaERq'
 ```
 
-## 总下载命令：自动识别与关键词搜索
+## 平台选择与音质
 
 `download` 是总入口。它会自动识别 Bilibili、YouTube 或 YouTube Music 的链接/ID，并使用相应插件：
 
