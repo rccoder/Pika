@@ -1,0 +1,10 @@
+# Social preview
+
+Generated with the built-in imagegen tool. Reference: ScaleMate's social preview.
+
+Upload `social-preview.png` in the GitHub repository settings under Social preview.
+The image is not automatically activated by adding it to the repository.
+
+## Prompt
+
+Use case: ads-marketing. Asset type: GitHub repository social preview for Pika, landscape 1280x640 pixels, exact 2:1 aspect ratio. Create a refined minimalist Chinese open-source software brand share card. Style reference described: warm almost-white mint-tinted background #f6f9f5, dark forest-green rounded square brand icon, charcoal-green Chinese typography, sage-muted secondary text, pale mint pill badges, generous editorial whitespace. Composition: left 70% is typography with 90px safe margins; right 30% is one large gently rotated dark green rounded-square music/download icon, backed by two oversized pale mint circles clipped off the top-right and bottom-right canvas edges. Elegant flat vector-like raster design, crisp edges, no gradients, no 3D, no shadows. Top-left small rounded-square icon containing a clean pale mint musical eighth note with a subtle downward arrow (music brought home), followed by the name "Pika" in large beautiful sans-serif dark green type, and smaller descriptor "音乐下载 CLI". Main large bold Chinese headline on two lines, verbatim: "把喜欢的音乐，" then "带回家。" Below headline muted medium-sized Chinese secondary copy, verbatim: "告诉 AI 想听什么，让 Pika 下载。" Below this place three soft sage-green rounded pill badges with exact text "Bilibili", "YouTube Music", "AI Agent". Bottom-left small muted text exact "github.com/rccoder/Pika". Right icon echoes the small top-left icon but larger, uses musical note and downward arrow only, not a scale, not a rabbit, not Pikachu. All text accurately rendered, especially Chinese; no extra text, no invented logos, no watermark. Visual hierarchy clear at thumbnail size. Keep all typography left-aligned, preserve calm generous negative space. This is a finished professional social-preview asset, not a browser mockup.

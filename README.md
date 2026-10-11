@@ -1,3 +1,5 @@
+<img src="docs/brand/logo.png" alt="Pika logo" width="128" height="128">
+
 # Pika
 
 **把喜欢的音乐带回家。**
