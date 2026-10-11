@@ -1,0 +1,240 @@
+package platform
+
+import (
+	"context"
+	"time"
+)
+
+// Track represents a music track from any platform.
+// This is the unified representation that maps from platform-specific types.
+type Track struct {
+	// ID is the platform-specific track identifier.
+	ID string `json:"id"`
+
+	// Platform is the source platform name (e.g., "netease", "spotify").
+	Platform string `json:"platform"`
+
+	// Title is the track name.
+	Title string `json:"title"`
+
+	// Artists is the list of artists for this track.
+	Artists []Artist `json:"artists"`
+
+	// Album is the album this track belongs to (may be nil for singles).
+	Album *Album `json:"album,omitempty"`
+
+	// Duration is the track length.
+	Duration time.Duration `json:"duration"`
+
+	// CoverURL is the URL to the track's cover art.
+	CoverURL string `json:"cover_url,omitempty"`
+
+	// URL is the direct URL to the track (if available without download).
+	URL string `json:"url,omitempty"`
+
+	// ISRC is the International Standard Recording Code (if available).
+	ISRC string `json:"isrc,omitempty"`
+
+	// Year is the release year (if available).
+	Year int `json:"year,omitempty"`
+
+	// TrackNumber is the track number within album (if available).
+	TrackNumber int `json:"track_number,omitempty"`
+
+	// DiscNumber is the disc number within multi-disc album (if available).
+	DiscNumber int `json:"disc_number,omitempty"`
+
+	// LyricsAvailable reports whether the platform explicitly says this track has
+	// lyrics. Nil means the platform did not provide this metadata.
+	LyricsAvailable *bool `json:"lyrics_available,omitempty"`
+
+	// AtmosAvailable reports whether the catalog explicitly advertises a Dolby
+	// Atmos rendition for this track. Nil means the platform did not provide an
+	// availability signal. The actual download path must still tolerate a stale
+	// catalog signal and fall back when an automatically preferred Atmos stream
+	// cannot be resolved.
+	AtmosAvailable *bool `json:"atmos_available,omitempty"`
+}
+
+// Artist represents a music artist from any platform.
+type Artist struct {
+	// ID is the platform-specific artist identifier.
+	ID string `json:"id"`
+
+	// Platform is the source platform name.
+	Platform string `json:"platform"`
+
+	// Name is the artist name.
+	Name string `json:"name"`
+
+	// AvatarURL is the URL to the artist's avatar or profile picture.
+	AvatarURL string `json:"avatar_url,omitempty"`
+
+	// URL is the direct URL to the artist's page (if available).
+	URL string `json:"url,omitempty"`
+}
+
+// Album represents a music album from any platform.
+type Album struct {
+	// ID is the platform-specific album identifier.
+	ID string `json:"id"`
+
+	// Platform is the source platform name.
+	Platform string `json:"platform"`
+
+	// Title is the album name.
+	Title string `json:"title"`
+
+	// Artists is the list of artists for this album.
+	Artists []Artist `json:"artists"`
+
+	// CoverURL is the URL to the album's cover art.
+	CoverURL string `json:"cover_url,omitempty"`
+
+	// Description is the album description/introduction.
+	Description string `json:"description,omitempty"`
+
+	// ReleaseDate is the album release date (if available).
+	ReleaseDate *time.Time `json:"release_date,omitempty"`
+
+	// TrackCount is the number of tracks in the album.
+	TrackCount int `json:"track_count,omitempty"`
+
+	// URL is the direct URL to the album (if available).
+	URL string `json:"url,omitempty"`
+
+	// Year is the album release year (if available).
+	Year int `json:"year,omitempty"`
+}
+
+// Playlist represents a music playlist from any platform.
+type Playlist struct {
+	// ID is the platform-specific playlist identifier.
+	ID string `json:"id"`
+
+	// Platform is the source platform name.
+	Platform string `json:"platform"`
+
+	// Title is the playlist name.
+	Title string `json:"title"`
+
+	// Description is the playlist description.
+	Description string `json:"description,omitempty"`
+
+	// CoverURL is the URL to the playlist's cover art.
+	CoverURL string `json:"cover_url,omitempty"`
+
+	// Creator is the user who created this playlist.
+	Creator string `json:"creator,omitempty"`
+
+	// TrackCount is the number of tracks in the playlist.
+	TrackCount int `json:"track_count,omitempty"`
+
+	// Tracks is the list of tracks in the playlist (may be empty if not loaded).
+	Tracks []Track `json:"tracks,omitempty"`
+
+	// URL is the direct URL to the playlist (if available).
+	URL string `json:"url,omitempty"`
+}
+
+// Lyrics represents song lyrics with optional timestamped lines.
+type Lyrics struct {
+	// Plain is the plain text lyrics without timestamps.
+	Plain string `json:"plain"`
+
+	// Timestamped contains synchronized lyrics with timing information.
+	Timestamped []LyricLine `json:"timestamped,omitempty"`
+
+	// Translation contains translated lyrics (if available).
+	Translation string `json:"translation,omitempty"`
+
+	// Roma contains romanization/pronunciation lyrics (if available).
+	Roma string `json:"roma,omitempty"`
+
+	// RawYRC / RawQRC / RawLYS hold a platform-native word-by-word ("逐词")
+	// raw lyric track when the platform can provide one. These feed the lyric
+	// format converter; at most one is typically set.
+	RawYRC string `json:"raw_yrc,omitempty"`
+	RawQRC string `json:"raw_qrc,omitempty"`
+	RawLYS string `json:"raw_lys,omitempty"`
+
+	// RawTTML is Apple Music's native word-timed TTML document, when available.
+	RawTTML string `json:"raw_ttml,omitempty"`
+}
+
+// LyricLine represents a single line of synchronized lyrics.
+type LyricLine struct {
+	// Time is the timestamp when this line should be displayed.
+	Time time.Duration `json:"time"`
+
+	// Text is the lyric text for this line.
+	Text string `json:"text"`
+}
+
+// TrackMetadata contains technical metadata about a downloaded track.
+type TrackMetadata struct {
+	// Format is the audio file format (e.g., "mp3", "flac", "m4a").
+	Format string `json:"format"`
+
+	// Bitrate is the audio bitrate in kbps.
+	Bitrate int `json:"bitrate"`
+
+	// SampleRate is the audio sample rate in Hz.
+	SampleRate int `json:"sample_rate,omitempty"`
+
+	// Channels is the number of audio channels (1 = mono, 2 = stereo).
+	Channels int `json:"channels,omitempty"`
+
+	// Size is the file size in bytes.
+	Size int64 `json:"size"`
+
+	// MD5 is the MD5 checksum of the audio file (if provided by platform).
+	MD5 string `json:"md5,omitempty"`
+
+	// Quality is the quality level of this track.
+	Quality Quality `json:"quality"`
+}
+
+type DownloadInfo struct {
+	URL           string                    `json:"url"`
+	CandidateURLs []string                  `json:"candidate_urls,omitempty"`
+	Headers       map[string]string         `json:"headers,omitempty"`
+	Size          int64                     `json:"size"`
+	Format        string                    `json:"format"`
+	Bitrate       int                       `json:"bitrate"`
+	MD5           string                    `json:"md5,omitempty"`
+	Quality       Quality                   `json:"quality"`
+	ExpiresAt     *time.Time                `json:"expires_at,omitempty"`
+	Downloader    DownloadFunc              `json:"-"`
+	ValidateURL   func(rawURL string) error `json:"-"`
+
+	// MaxChunkSize, when > 0, marks a source that REQUIRES bounded Range
+	// requests no larger than this many bytes per request. Some CDNs
+	// (notably googlevideo for YouTube Music) reject HEAD requests, plain
+	// GETs with no Range, open-ended ranges (bytes=N-), and any single range
+	// larger than a per-IP cap with HTTP 403. For such sources the downloader
+	// must always issue bounded Range chunks of at most this size and never
+	// fall back to an unbounded GET.
+	MaxChunkSize int64 `json:"max_chunk_size,omitempty"`
+
+	// SizeIsAdvisory marks Size as a best-effort hint rather than an exact
+	// contract. By default the downloader requires the transferred bytes to
+	// match Size exactly, which keeps a CDN from swapping in different content
+	// than the platform described. A few platforms report a size that is simply
+	// wrong: QQ music understates some FLAC files by 15 bytes because its
+	// size_flac field omits trailing bytes the CDN still serves. For those, only
+	// a *short* transfer is an integrity failure; extra bytes are accepted and
+	// the served length wins.
+	SizeIsAdvisory bool `json:"size_is_advisory,omitempty"`
+}
+
+type DownloadFunc func(ctx context.Context, info *DownloadInfo, destPath string, progress func(written, total int64)) (written int64, err error)
+
+type Capabilities struct {
+	Download    bool `json:"download"`
+	Search      bool `json:"search"`
+	Lyrics      bool `json:"lyrics"`
+	Recognition bool `json:"recognition"`
+	HiRes       bool `json:"hi_res"`
+	Atmos       bool `json:"atmos"`
+}

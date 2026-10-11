@@ -1,0 +1,14 @@
+bin/
+/pika
+downloads/
+*.ini
+!config.example.ini
+*.cookie
+*.cookies
+.env
+.env.*
+*.m4a
+*.flac
+*.mp3
+*.opus
+*.webm
